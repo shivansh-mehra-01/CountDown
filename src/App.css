@@ -323,10 +323,10 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(100, 100, 255, 0.06) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 35% at 50% 55%, rgba(168, 85, 247, 0.04) 0%, transparent 55%);
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(100, 100, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 60%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
   opacity: 0;
-  transition: opacity 1.5s ease;
+  transition: opacity 1s ease;
   pointer-events: none;
 }
 
@@ -336,7 +336,79 @@
   opacity: 1;
 }
 
-.welcome-screen.holding .welcome-light {
+.welcome-text {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(4rem, 12vw, 10rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin: 0;
+  padding: 0.5em 0.3em;
+  opacity: 0;
+  transform: scale(0.85);
+  filter: blur(10px);
+  transition:
+    opacity 0.8s ease 0.2s,
+    transform 0.8s ease 0.2s,
+    filter 0.8s ease 0.2s;
+  background: linear-gradient(180deg, #ffffff 0%, #e8e8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: blur(10px) drop-shadow(0 0 60px rgba(120, 120, 255, 0.15));
+}
+
+.welcome-screen.entering .welcome-text,
+.welcome-screen.holding .welcome-text,
+.welcome-screen.exiting .welcome-text {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0) drop-shadow(0 0 60px rgba(120, 120, 255, 0.15));
+}
+
+.welcome-screen.exiting .welcome-text {
+  opacity: 0;
+  transform: scale(0.95);
+  filter: blur(6px) drop-shadow(0 0 40px rgba(120, 120, 255, 0.1));
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease,
+    filter 0.7s ease;
+}
+
+/* === EVENT TITLE SCREEN === */
+.event-title-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at 50% 50%, #050508 0%, #000000 100%);
+  z-index: 9999;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.event-title-light {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(100, 100, 255, 0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 55%, rgba(168, 85, 247, 0.04) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  pointer-events: none;
+}
+
+.event-title-screen.entering .event-title-light,
+.event-title-screen.holding .event-title-light,
+.event-title-screen.exiting .event-title-light {
+  opacity: 1;
+}
+
+.event-title-screen.holding .event-title-light {
   animation: light-breathe 4s ease-in-out infinite;
 }
 
@@ -345,7 +417,7 @@
   50% { opacity: 0.7; }
 }
 
-.welcome-screen::before {
+.event-title-screen::before {
   content: '';
   position: absolute;
   width: 2px;
@@ -367,9 +439,9 @@
   pointer-events: none;
 }
 
-.welcome-screen.entering::before,
-.welcome-screen.holding::before,
-.welcome-screen.exiting::before {
+.event-title-screen.entering::before,
+.event-title-screen.holding::before,
+.event-title-screen.exiting::before {
   opacity: 1;
 }
 
@@ -380,7 +452,7 @@
   75% { transform: translate(-15px, -5px); }
 }
 
-.welcome-content {
+.event-title-content {
   position: relative;
   z-index: 2;
   text-align: center;
@@ -391,7 +463,7 @@
   padding: 2rem;
 }
 
-.welcome-line-1 {
+.event-title-line-1 {
   font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(0.875rem, 1.8vw, 1.25rem);
   font-weight: 600;
@@ -407,7 +479,7 @@
   opacity: 0.75;
 }
 
-.welcome-divider {
+.event-title-divider {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -415,13 +487,13 @@
   transition: opacity 0.6s ease 0.6s;
 }
 
-.welcome-line {
+.event-title-line {
   width: 30px;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
 }
 
-.welcome-line-2 {
+.event-title-line-2 {
   font-family: 'Inter', sans-serif;
   font-size: clamp(0.625rem, 1.2vw, 0.8rem);
   font-weight: 500;
@@ -431,7 +503,7 @@
   margin: 0;
 }
 
-.welcome-line-3 {
+.event-title-line-3 {
   font-family: 'Sora', sans-serif;
   font-size: clamp(2.5rem, 7vw, 5.5rem);
   font-weight: 800;
@@ -445,7 +517,7 @@
   text-shadow: 0 0 40px rgba(56, 189, 248, 0.12), 0 0 80px rgba(168, 85, 247, 0.08);
 }
 
-.welcome-line-4 {
+.event-title-line-4 {
   font-family: 'Sora', sans-serif;
   font-size: clamp(3rem, 9vw, 7rem);
   font-weight: 800;
@@ -459,53 +531,53 @@
   text-shadow: 0 0 40px rgba(56, 189, 248, 0.15), 0 0 80px rgba(168, 85, 247, 0.1);
 }
 
-.welcome-screen.entering .welcome-line-1,
-.welcome-screen.holding .welcome-line-1,
-.welcome-screen.exiting .welcome-line-1 {
+.event-title-screen.entering .event-title-line-1,
+.event-title-screen.holding .event-title-line-1,
+.event-title-screen.exiting .event-title-line-1 {
   opacity: 1;
   transform: translateY(0);
 }
 
-.welcome-screen.entering .welcome-divider,
-.welcome-screen.holding .welcome-divider,
-.welcome-screen.exiting .welcome-divider {
+.event-title-screen.entering .event-title-divider,
+.event-title-screen.holding .event-title-divider,
+.event-title-screen.exiting .event-title-divider {
   opacity: 1;
 }
 
-.welcome-screen.entering .welcome-line-3,
-.welcome-screen.holding .welcome-line-3,
-.welcome-screen.exiting .welcome-line-3 {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.welcome-screen.entering .welcome-line-4,
-.welcome-screen.holding .welcome-line-4,
-.welcome-screen.exiting .welcome-line-4 {
+.event-title-screen.entering .event-title-line-3,
+.event-title-screen.holding .event-title-line-3,
+.event-title-screen.exiting .event-title-line-3 {
   opacity: 1;
   transform: translateY(0);
 }
 
-.welcome-screen.exiting .welcome-line-1 {
+.event-title-screen.entering .event-title-line-4,
+.event-title-screen.holding .event-title-line-4,
+.event-title-screen.exiting .event-title-line-4 {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.event-title-screen.exiting .event-title-line-1 {
   opacity: 0;
   transform: translateY(-20px) scale(0.95);
   filter: blur(4px);
   transition-delay: 0.3s;
 }
 
-.welcome-screen.exiting .welcome-divider {
+.event-title-screen.exiting .event-title-divider {
   opacity: 0;
   transition-delay: 0.2s;
 }
 
-.welcome-screen.exiting .welcome-line-3 {
+.event-title-screen.exiting .event-title-line-3 {
   opacity: 0;
   transform: translateY(-30px) scale(0.9);
   filter: blur(8px);
   transition-delay: 0.1s;
 }
 
-.welcome-screen.exiting .welcome-line-4 {
+.event-title-screen.exiting .event-title-line-4 {
   opacity: 0;
   transform: translateY(-30px) scale(0.9);
   filter: blur(8px);
