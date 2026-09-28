@@ -7,7 +7,7 @@ import './App.css';
 const CURTAIN_OPEN_DURATION = 2800;
 const COUNTDOWN_INTERVAL = 1000;
 const COUNTDOWN_FADE_DURATION = 1000;
-const WELCOME_ENTER_DURATION = 1500;
+const WELCOME_ENTER_DURATION = 2000;
 const WELCOME_HOLD_DURATION = 4500;
 const WELCOME_EXIT_DURATION = 800;
 const WELCOME_COMPLETE_DURATION = WELCOME_ENTER_DURATION + WELCOME_HOLD_DURATION + WELCOME_EXIT_DURATION;
@@ -110,8 +110,13 @@ const WelcomeScreen = ({ onComplete }) => {
       <div className="welcome-light" />
       <div className="welcome-content">
         <h3 className="welcome-line-1">4th Edition</h3>
-        <h4 className="welcome-line-2">of</h4>
-        <h1 className="welcome-line-3">SISTec Innovation Hackathon</h1>
+        <div className="welcome-divider">
+          <span className="welcome-line" />
+          <h4 className="welcome-line-2">of</h4>
+          <span className="welcome-line" />
+        </div>
+        <h1 className="welcome-line-3">SISTec Innovation</h1>
+        <h1 className="welcome-line-4">Hackathon</h1>
       </div>
     </div>
   );
