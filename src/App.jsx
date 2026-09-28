@@ -605,6 +605,18 @@ const App = () => {
             />
           )}
         </div>
+
+        {/* Secondary Event Branding */}
+        <div className="event-branding-container z-10 pointer-events-none">
+          <div className="si-monogram">
+            <div className="si-ribbon-1"></div>
+            <div className="si-ribbon-2"></div>
+            <div className="si-ribbon-3"></div>
+          </div>
+          <div className="event-branding-text">
+            SISTec Innovation Hackathon
+          </div>
+        </div>
       </div>
     </>
   );
