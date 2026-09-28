@@ -5,6 +5,13 @@ import RotatingEarth from './components/ui/wireframe-dotted-globe';
 import './App.css';
 
 const CURTAIN_OPEN_DURATION = 2800;
+const COUNTDOWN_INTERVAL = 1000;
+const COUNTDOWN_FADE_DURATION = 1000;
+const WELCOME_ENTER_DURATION = 1500;
+const WELCOME_HOLD_DURATION = 4500;
+const WELCOME_EXIT_DURATION = 800;
+const WELCOME_COMPLETE_DURATION = WELCOME_ENTER_DURATION + WELCOME_HOLD_DURATION + WELCOME_EXIT_DURATION;
+const TRANSITION_TO_24H_DURATION = 1000;
 
 const CurtainScreen = ({ onOpen }) => {
   const [opening, setOpening] = useState(false);
@@ -55,29 +62,56 @@ const CurtainScreen = ({ onOpen }) => {
   );
 };
 
-const SplashScreen = ({ onComplete, onFadeStart }) => {
+const CountdownScreen = ({ onComplete }) => {
   const [count, setCount] = useState(10);
   const [fade, setFade] = useState(false);
 
   useEffect(() => {
     if (count > 0) {
-      const timer = setTimeout(() => setCount(count - 1), 1000);
+      const timer = setTimeout(() => setCount(count - 1), COUNTDOWN_INTERVAL);
       return () => clearTimeout(timer);
     } else {
       setFade(true);
-      if (onFadeStart) onFadeStart();
-      const timer = setTimeout(onComplete, 1000);
+      const timer = setTimeout(onComplete, COUNTDOWN_FADE_DURATION);
       return () => clearTimeout(timer);
     }
-  }, [count, onComplete, onFadeStart]);
+  }, [count, onComplete]);
 
   return (
-    <div className={`splash-screen dark ${fade ? 'fade-out' : ''}`}>
+    <div className={`countdown-screen ${fade ? 'fade-out' : ''}`}>
       {count > 0 && (
-        <div className="splash-number" key={count}>
+        <div className="countdown-number" key={count}>
           {count}
         </div>
       )}
+    </div>
+  );
+};
+
+const WelcomeScreen = ({ onComplete }) => {
+  const [phase, setPhase] = useState('initial');
+
+  useEffect(() => {
+    const enterTimer = setTimeout(() => setPhase('entering'), 100);
+    const holdTimer = setTimeout(() => setPhase('holding'), WELCOME_ENTER_DURATION);
+    const exitTimer = setTimeout(() => setPhase('exiting'), WELCOME_ENTER_DURATION + WELCOME_HOLD_DURATION);
+    const completeTimer = setTimeout(onComplete, WELCOME_COMPLETE_DURATION);
+
+    return () => {
+      clearTimeout(enterTimer);
+      clearTimeout(holdTimer);
+      clearTimeout(exitTimer);
+      clearTimeout(completeTimer);
+    };
+  }, [onComplete]);
+
+  return (
+    <div className={`welcome-screen ${phase}`}>
+      <div className="welcome-light" />
+      <div className="welcome-content">
+        <h3 className="welcome-subtitle">4th Edition of</h3>
+        <h1 className="welcome-title">SISTec Innovation Hackathon</h1>
+      </div>
     </div>
   );
 };
@@ -88,9 +122,7 @@ const App = () => {
     height: window.innerHeight,
   });
 
-  const [curtainState, setCurtainState] = useState('closed');
-  const [showSplash, setShowSplash] = useState(false);
-  const [splashFadingOut, setSplashFadingOut] = useState(false);
+  const [phase, setPhase] = useState('CLOSED');
 
   useEffect(() => {
     const handleResize = () => {
@@ -102,6 +134,13 @@ const App = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (phase === 'TRANSITION_TO_24H') {
+      const timer = setTimeout(() => setPhase('24_HOUR_COUNTDOWN'), TRANSITION_TO_24H_DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
 
   const targetTime = useMemo(
     () => new Date().getTime() + 1000 * 60 * 60 * 24,
@@ -117,32 +156,34 @@ const App = () => {
     fontSize: isMobile ? 50 : isTablet ? 120 : 180,
   };
 
-  const appIsVisible = curtainState === 'open' && (!showSplash || splashFadingOut);
+  const showCurtains = phase === 'CLOSED' || phase === 'OPENING';
+  const showCountdown = phase === 'COUNTDOWN';
+  const showWelcome = phase === 'WELCOME';
+  const show24H = phase === 'TRANSITION_TO_24H' || phase === '24_HOUR_COUNTDOWN';
 
   const handleCurtainOpen = useCallback(() => {
-    setCurtainState('open');
-    setShowSplash(true);
+    setPhase('COUNTDOWN');
   }, []);
 
-  const handleFadeStart = useCallback(() => setSplashFadingOut(true), []);
-  const handleSplashComplete = useCallback(() => setShowSplash(false), []);
+  const handleCountdownComplete = useCallback(() => {
+    setPhase('WELCOME');
+  }, []);
+
+  const handleWelcomeComplete = useCallback(() => {
+    setPhase('TRANSITION_TO_24H');
+  }, []);
 
   return (
     <>
-      {curtainState !== 'open' && <CurtainScreen onOpen={handleCurtainOpen} />}
-      {showSplash && (
-        <SplashScreen
-          onFadeStart={handleFadeStart}
-          onComplete={handleSplashComplete}
-        />
-      )}
+      {showCurtains && <CurtainScreen onOpen={handleCurtainOpen} />}
+      {showCountdown && <CountdownScreen onComplete={handleCountdownComplete} />}
+      {showWelcome && <WelcomeScreen onComplete={handleWelcomeComplete} />}
       <div
         className="app-container dark"
         style={{
-          opacity: appIsVisible ? 1 : 0,
-          transform: appIsVisible ? 'scale(1)' : 'scale(1.1)',
-          transition:
-            'opacity 2s ease-in-out, transform 2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          opacity: show24H ? 1 : 0,
+          transform: show24H ? 'scale(1)' : 'scale(1.1)',
+          transition: 'opacity 2s ease-in-out, transform 2s cubic-bezier(0.2, 0.8, 0.2, 1)',
         }}
       >
         <div className="absolute inset-0 z-0 pointer-events-auto transition-all duration-700 opacity-60 mix-blend-screen">
