@@ -1,3 +1,4 @@
+/* === APP CONTAINER === */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -5,37 +6,377 @@
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at 50% 50%, #0a1017 0%, #000000 100%);
   position: relative;
+  transition: background 0.5s ease;
 }
 
-/* Subtle background animations */
-.app-container::before {
+.app-container.dark {
+  background: radial-gradient(circle at 50% 50%, #0a1017 0%, #000000 100%);
+}
+
+.app-container.dark::before {
   content: "";
   position: absolute;
   top: -20%;
   left: -10%;
   width: 50%;
   height: 50%;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.05) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
   filter: blur(80px);
   z-index: 0;
   pointer-events: none;
 }
 
-.app-container::after {
+.app-container.dark::after {
   content: "";
   position: absolute;
   bottom: -20%;
   right: -10%;
   width: 50%;
   height: 50%;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.03) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.03) 0%, rgba(0, 0, 0, 0) 70%);
   filter: blur(80px);
   z-index: 0;
   pointer-events: none;
 }
 
-.app-container > * {
+/* === CURTAIN STAGE === */
+.curtain-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #020202;
+  z-index: 10000;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Stage reveal - warm light from behind curtains */
+.stage-reveal {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(255, 190, 90, 0.15) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 55%, rgba(255, 210, 120, 0.1) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 2.5s ease 0.6s;
+  pointer-events: none;
   z-index: 1;
+}
+
+.curtain-opening .stage-reveal {
+  opacity: 1;
+}
+
+/* === CURTAIN PANELS === */
+.curtain-left,
+.curtain-right {
+  position: absolute;
+  top: 0;
+  width: 50.5%;
+  height: 100%;
+  z-index: 2;
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.curtain-left {
+  left: 0;
+}
+
+.curtain-right {
+  right: 0;
+}
+
+/* Curtain opening animations */
+.curtain-opening .curtain-left {
+  animation: curtain-open-left 2.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.curtain-opening .curtain-right {
+  animation: curtain-open-right 2.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes curtain-open-left {
+  0% {
+    transform: translateX(0) skewY(0) scaleY(1);
+  }
+  20% {
+    transform: translateX(-2%) skewY(0.3deg) scaleY(1.005);
+  }
+  55% {
+    transform: translateX(-45%) skewY(-0.2deg) scaleY(0.99);
+  }
+  80% {
+    transform: translateX(-80%) skewY(-0.4deg) scaleY(0.98);
+  }
+  100% {
+    transform: translateX(-104%) skewY(-0.5deg) scaleY(0.97);
+  }
+}
+
+@keyframes curtain-open-right {
+  0% {
+    transform: translateX(0) skewY(0) scaleY(1);
+  }
+  20% {
+    transform: translateX(2%) skewY(-0.3deg) scaleY(1.005);
+  }
+  55% {
+    transform: translateX(45%) skewY(0.2deg) scaleY(0.99);
+  }
+  80% {
+    transform: translateX(80%) skewY(0.4deg) scaleY(0.98);
+  }
+  100% {
+    transform: translateX(104%) skewY(0.5deg) scaleY(0.97);
+  }
+}
+
+/* === CURTAIN FABRIC === */
+.curtain-fabric {
+  position: absolute;
+  inset: 0;
+  background:
+    /* Fine horizontal texture (fabric weave) */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.015) 2px,
+      rgba(0, 0, 0, 0.015) 3px
+    ),
+    /* Wide vertical fold shadows */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 16px,
+      rgba(0, 0, 0, 0.4) 16px,
+      rgba(0, 0, 0, 0.4) 24px
+    ),
+    /* Vertical fold highlights */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 8px,
+      rgba(255, 255, 255, 0.06) 8px,
+      rgba(255, 255, 255, 0.06) 12px,
+      transparent 12px,
+      transparent 24px
+    ),
+    /* Secondary fold pattern for depth */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 4px,
+      rgba(0, 0, 0, 0.12) 4px,
+      rgba(0, 0, 0, 0.12) 6px,
+      transparent 6px,
+      transparent 24px
+    ),
+    /* Base fabric gradient */
+    linear-gradient(180deg,
+      #5a0f0f 0%,
+      #4a0c0c 15%,
+      #3d0909 40%,
+      #330707 60%,
+      #2a0505 80%,
+      #1f0303 100%
+    );
+}
+
+/* Fabric sheen - silky horizontal reflection */
+.curtain-fabric::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.03) 10%,
+    transparent 30%,
+    transparent 70%,
+    rgba(0, 0, 0, 0.1) 90%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  pointer-events: none;
+}
+
+/* Inner shadow for depth */
+.curtain-fabric::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+/* === CENTER SEAM === */
+.curtain-seam {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 100%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 30%,
+    rgba(0, 0, 0, 0.2) 50%,
+    rgba(0, 0, 0, 0.4) 70%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity 0.8s ease 0.3s;
+}
+
+.curtain-opening .curtain-seam {
+  opacity: 0;
+}
+
+/* === BOTTOM GOLD TRIM === */
+.curtain-left::after,
+.curtain-right::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: linear-gradient(180deg,
+    rgba(180, 140, 60, 0) 0%,
+    rgba(180, 140, 60, 0.25) 40%,
+    rgba(200, 160, 70, 0.45) 100%
+  );
+  z-index: 3;
+}
+
+/* === CLICK HINT === */
+.curtain-click-hint {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  animation: hint-fade-in 1.5s ease 1s forwards;
+}
+
+.curtain-click-hint span {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  animation: hint-pulse 2.5s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.curtain-opening .curtain-click-hint {
+  opacity: 0 !important;
+  animation: none;
+}
+
+@keyframes hint-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hint-pulse {
+  0%, 100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* === CURTAIN HOVER EFFECT === */
+.curtain-stage:not(.curtain-opening):hover .curtain-left {
+  transform: translateX(-0.5%);
+}
+
+.curtain-stage:not(.curtain-opening):hover .curtain-right {
+  transform: translateX(0.5%);
+}
+
+.curtain-stage:not(.curtain-opening) .curtain-left,
+.curtain-stage:not(.curtain-opening) .curtain-right {
+  transition: transform 0.4s ease;
+}
+
+/* === SPLASH SCREEN === */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at 50% 50%, #0a1017 0%, #000000 100%);
+  z-index: 9999;
+  transition: opacity 1s ease, visibility 1s ease;
+  overflow: hidden;
+}
+
+.splash-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash-number {
+  font-size: 10rem;
+  font-weight: 800;
+  font-family: inherit;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  text-align: center;
+  background: linear-gradient(135deg, #38bdf8, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  animation: cinematic-zoom 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes cinematic-zoom {
+  0% {
+    transform: translate(-50%, -50%) scale(15);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0;
+  }
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .curtain-click-hint {
+    bottom: 24px;
+  }
+
+  .curtain-click-hint span {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+  }
 }
