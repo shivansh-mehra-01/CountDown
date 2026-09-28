@@ -345,55 +345,86 @@
   padding: 2rem;
 }
 
-.welcome-subtitle {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(0.875rem, 2vw, 1.25rem);
-  font-weight: 500;
+.welcome-line-1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 700;
   color: #a855f7;
-  letter-spacing: 0.35em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin: 0;
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+  transition: opacity 0.6s ease, transform 0.6s ease, filter 0.6s ease;
 }
 
-.welcome-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.75rem, 5vw, 4rem);
-  font-weight: 700;
+.welcome-line-2 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease 0.2s, transform 0.6s ease 0.2s, filter 0.6s ease 0.2s;
+}
+
+.welcome-line-3 {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  font-weight: 800;
   color: #ffffff;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   margin: 0;
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s, filter 0.8s ease 0.3s;
+  transition: opacity 0.6s ease 0.4s, transform 0.6s ease 0.4s, filter 0.6s ease 0.4s;
   text-shadow: 0 0 40px rgba(56, 189, 248, 0.15), 0 0 80px rgba(168, 85, 247, 0.1);
 }
 
-.welcome-screen.entering .welcome-subtitle,
-.welcome-screen.holding .welcome-subtitle {
+.welcome-screen.entering .welcome-line-1,
+.welcome-screen.holding .welcome-line-1,
+.welcome-screen.exiting .welcome-line-1 {
   opacity: 1;
   transform: translateY(0);
 }
 
-.welcome-screen.entering .welcome-title,
-.welcome-screen.holding .welcome-title {
+.welcome-screen.entering .welcome-line-2,
+.welcome-screen.holding .welcome-line-2,
+.welcome-screen.exiting .welcome-line-2 {
   opacity: 1;
   transform: translateY(0);
 }
 
-.welcome-screen.exiting .welcome-subtitle {
+.welcome-screen.entering .welcome-line-3,
+.welcome-screen.holding .welcome-line-3,
+.welcome-screen.exiting .welcome-line-3 {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.welcome-screen.exiting .welcome-line-1 {
   opacity: 0;
   transform: translateY(-20px) scale(0.95);
   filter: blur(4px);
+  transition-delay: 0.2s;
 }
 
-.welcome-screen.exiting .welcome-title {
+.welcome-screen.exiting .welcome-line-2 {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+  filter: blur(4px);
+  transition-delay: 0.1s;
+}
+
+.welcome-screen.exiting .welcome-line-3 {
   opacity: 0;
   transform: translateY(-30px) scale(0.9);
   filter: blur(8px);
+  transition-delay: 0s;
 }
 
 /* === COUNTDOWN SCREEN === */
@@ -405,7 +436,7 @@
   align-items: center;
   background: radial-gradient(circle at 50% 50%, #0a1017 0%, #000000 100%);
   z-index: 9999;
-  overflow: hidden;
+  overflow: visible;
   transition: opacity 1s ease, visibility 1s ease;
   user-select: none;
   -webkit-user-select: none;
@@ -417,45 +448,42 @@
 }
 
 .countdown-number {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: clamp(6rem, 20vw, 20rem);
-  font-weight: 900;
-  line-height: 0.85;
-  letter-spacing: -0.04em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
   text-align: center;
-  background: linear-gradient(135deg, #38bdf8, #a855f7);
+  background: linear-gradient(180deg, #ffffff 0%, #e8e8ff 50%, #d0d0ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   position: absolute;
   top: 50%;
   left: 50%;
   margin: 0;
-  padding: 0;
-  animation: countdown-zoom 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  padding: 0.15em 0.1em;
+  transform-origin: center;
+  animation: countdown-zoom 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  filter: drop-shadow(0 0 60px rgba(56, 189, 248, 0.3)) drop-shadow(0 0 120px rgba(168, 85, 247, 0.2));
+  filter: drop-shadow(0 0 50px rgba(120, 120, 255, 0.12)) drop-shadow(0 0 100px rgba(160, 120, 255, 0.08));
 }
 
 @keyframes countdown-zoom {
   0% {
-    transform: translate(-50%, -50%) scale(15);
+    transform: translate3d(-50%, -50%, 0) scale(2.2);
     opacity: 0;
   }
-  15% {
+  20% {
     opacity: 1;
   }
-  60% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-  85% {
-    transform: translate(-50%, -50%) scale(1);
+  70% {
+    transform: translate3d(-50%, -50%, 0) scale(1);
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) scale(0.85);
+    transform: translate3d(-50%, -50%, 0) scale(0.95);
     opacity: 0;
   }
 }

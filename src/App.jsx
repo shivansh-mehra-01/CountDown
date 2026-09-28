@@ -109,8 +109,9 @@ const WelcomeScreen = ({ onComplete }) => {
     <div className={`welcome-screen ${phase}`}>
       <div className="welcome-light" />
       <div className="welcome-content">
-        <h3 className="welcome-subtitle">4th Edition of</h3>
-        <h1 className="welcome-title">SISTec Innovation Hackathon</h1>
+        <h3 className="welcome-line-1">4th Edition</h3>
+        <h4 className="welcome-line-2">of</h4>
+        <h1 className="welcome-line-3">SISTec Innovation Hackathon</h1>
       </div>
     </div>
   );
