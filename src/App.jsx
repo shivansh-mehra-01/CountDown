@@ -6,21 +6,18 @@ import './App.css';
 
 // === CONSTANTS ===
 const CURTAIN_OPEN_DURATION = 2800;
-const WELCOME_ENTER_DURATION = 800;
-const WELCOME_HOLD_DURATION = 1700;
-const WELCOME_EXIT_DURATION = 700;
-const WELCOME_COMPLETE_DURATION = WELCOME_ENTER_DURATION + WELCOME_HOLD_DURATION + WELCOME_EXIT_DURATION;
-const COUNTDOWN_INTERVAL = 1000;
-const COUNTDOWN_FADE_DURATION = 1000;
+const WELCOME_HOLD_DURATION = 3000;
 const EVENT_TITLE_ENTER_DURATION = 2000;
 const EVENT_TITLE_HOLD_DURATION = 4500;
 const EVENT_TITLE_EXIT_DURATION = 800;
 const EVENT_TITLE_COMPLETE_DURATION = EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION + EVENT_TITLE_EXIT_DURATION;
+const COUNTDOWN_INTERVAL = 1000;
+const COUNTDOWN_FADE_DURATION = 1000;
 const TRANSITION_TO_24H_DURATION = 1000;
 
 const PHASES = {
-  CLOSED_CURTAIN: 'CLOSED_CURTAIN',
-  CURTAIN_OPENING: 'CURTAIN_OPENING',
+  CLOSED: 'CLOSED',
+  OPENING: 'OPENING',
   WELCOME: 'WELCOME',
   COUNTDOWN_10: 'COUNTDOWN_10',
   EVENT_TITLE: 'EVENT_TITLE',
@@ -37,7 +34,6 @@ const STATUS = {
 const STORAGE_KEY = 'hackathon_event_state';
 
 // === PERSISTENCE LAYER ===
-// Isolated so it can be replaced with an API call later
 function loadEventState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -281,8 +277,8 @@ const ResetConfirmation = ({ onCancel, onConfirm }) => {
   );
 };
 
-// === CURTAIN SCREEN ===
-const CurtainScreen = ({ onOpen }) => {
+// === CURTAIN SCREEN (with WELCOME behind) ===
+const CurtainScreen = ({ onOpen, children }) => {
   const [opening, setOpening] = useState(false);
   const timeoutRef = useRef(null);
 
@@ -316,6 +312,7 @@ const CurtainScreen = ({ onOpen }) => {
         }
       }}
     >
+      {children}
       <div className="curtain-left">
         <div className="curtain-fabric" />
       </div>
@@ -327,32 +324,6 @@ const CurtainScreen = ({ onOpen }) => {
       <div className="curtain-click-hint" aria-hidden="true">
         <span>Click to Begin</span>
       </div>
-    </div>
-  );
-};
-
-// === WELCOME SCREEN ===
-const WelcomeScreen = ({ onComplete }) => {
-  const [phase, setPhase] = useState('initial');
-
-  useEffect(() => {
-    const enterTimer = setTimeout(() => setPhase('entering'), 200);
-    const holdTimer = setTimeout(() => setPhase('holding'), WELCOME_ENTER_DURATION);
-    const exitTimer = setTimeout(() => setPhase('exiting'), WELCOME_ENTER_DURATION + WELCOME_HOLD_DURATION);
-    const completeTimer = setTimeout(onComplete, WELCOME_COMPLETE_DURATION);
-
-    return () => {
-      clearTimeout(enterTimer);
-      clearTimeout(holdTimer);
-      clearTimeout(exitTimer);
-      clearTimeout(completeTimer);
-    };
-  }, [onComplete]);
-
-  return (
-    <div className={`welcome-screen ${phase}`}>
-      <div className="welcome-light" />
-      <div className="welcome-text">Welcome</div>
     </div>
   );
 };
@@ -426,12 +397,13 @@ const App = () => {
     height: window.innerHeight,
   });
 
-  const [phase, setPhase] = useState(PHASES.CLOSED_CURTAIN);
+  const [phase, setPhase] = useState(PHASES.CLOSED);
   const [eventState, setEventState] = useState(null);
   const [remaining, setRemaining] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showSetCountdown, setShowSetCountdown] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [defaultTargetTime, setDefaultTargetTime] = useState(null);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -483,6 +455,14 @@ const App = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Welcome hold timer
+  useEffect(() => {
+    if (phase === PHASES.WELCOME) {
+      const timer = setTimeout(() => setPhase(PHASES.COUNTDOWN_10), WELCOME_HOLD_DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
+
   // Transition to 24H countdown
   useEffect(() => {
     if (phase === 'TRANSITION_TO_24H') {
@@ -500,18 +480,19 @@ const App = () => {
     fontSize: isMobile ? 50 : isTablet ? 120 : 180,
   };
 
-  const showCurtains = phase === PHASES.CLOSED_CURTAIN || phase === PHASES.CURTAIN_OPENING;
-  const showWelcome = phase === PHASES.WELCOME;
+  const showCurtains = phase === PHASES.CLOSED || phase === PHASES.OPENING || phase === PHASES.WELCOME;
   const showCountdown = phase === PHASES.COUNTDOWN_10;
   const showEventTitle = phase === PHASES.EVENT_TITLE;
-  const show24H = phase === PHASES.COUNTDOWN_24H || phase === PHASES.COMPLETED;
+  const show24H = phase === 'TRANSITION_TO_24H' || phase === PHASES.COUNTDOWN_24H || phase === PHASES.COMPLETED;
+
+  useEffect(() => {
+    if (show24H && !defaultTargetTime && !eventState) {
+      setDefaultTargetTime(Date.now() + 1000 * 60 * 60 * 24);
+    }
+  }, [show24H, defaultTargetTime, eventState]);
 
   const handleCurtainOpen = useCallback(() => {
     setPhase(PHASES.WELCOME);
-  }, []);
-
-  const handleWelcomeComplete = useCallback(() => {
-    setPhase(PHASES.COUNTDOWN_10);
   }, []);
 
   const handleCountdownComplete = useCallback(() => {
@@ -544,17 +525,21 @@ const App = () => {
     clearEventState();
     setEventState(null);
     setRemaining(null);
-    setPhase(PHASES.CLOSED_CURTAIN);
+    setPhase(PHASES.CLOSED);
     setShowResetConfirm(false);
     setShowAdminPanel(false);
   }, []);
 
   return (
     <>
-      {showCurtains && <CurtainScreen onOpen={handleCurtainOpen} />}
-      {showWelcome && <WelcomeScreen onComplete={handleWelcomeComplete} />}
-      {showCountdown && <CountdownScreen onComplete={handleCountdownComplete} />}
+      {showCurtains && (
+        <CurtainScreen onOpen={handleCurtainOpen}>
+          <div className="welcome-text">WELCOME</div>
+        </CurtainScreen>
+      )}
+
       {showEventTitle && <EventTitleScreen onComplete={handleEventTitleComplete} />}
+      {showCountdown && <CountdownScreen onComplete={handleCountdownComplete} />}
 
       {showAdminPanel && (
         <AdminPanel
@@ -601,22 +586,24 @@ const App = () => {
             justifyContent: 'center',
           }}
         >
-          <FlipClockCountdown
-            to={eventState?.endAt || Date.now() + 1000 * 60 * 60 * 24}
-            renderMap={[false, true, true, true]}
-            showLabels={false}
-            separatorStyle={{ color: "#949494", size: isMobile ? "12px" : "18px" }}
-            digitBlockStyle={{
-              width: clockSize.width,
-              height: clockSize.height,
-              fontSize: clockSize.fontSize,
-              color: "#949494",
-              backgroundColor: "#1c1c1c",
-              borderRadius: isMobile ? "10px" : "20px",
-              boxShadow: "none",
-            }}
-            dividerStyle={{ color: "#141414", height: 1 }}
-          />
+          {(eventState?.endAt || defaultTargetTime) && (
+            <FlipClockCountdown
+              to={eventState?.endAt || defaultTargetTime}
+              renderMap={[false, true, true, true]} // [days, hours, minutes, seconds]
+              showLabels={false}
+              separatorStyle={{ color: "#949494", size: isMobile ? "12px" : "18px" }}
+              digitBlockStyle={{
+                width: clockSize.width,
+                height: clockSize.height,
+                fontSize: clockSize.fontSize,
+                color: "#949494",
+                backgroundColor: "#1c1c1c",
+                borderRadius: isMobile ? "10px" : "20px",
+                boxShadow: "none",
+              }}
+              dividerStyle={{ color: "#141414", height: 1 }}
+            />
+          )}
         </div>
       </div>
     </>
