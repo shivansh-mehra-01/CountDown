@@ -77,14 +77,15 @@ class AudioManager {
     this.sounds.countdown10s = new Audio('/audio/10-seconds-countdown-sound.mpeg');
     this.sounds.countdown10s.volume = 0.6;
 
-    this.sounds.hooter = new Audio('/audio/event-hooter.mp3');
+    this.sounds.hooter = new Audio('/audio/hooter-sound.mp3');
     this.sounds.hooter.volume = 1.0;
 
     this.initialized = true;
   }
 
   play(soundName) {
-    if (!this.initialized || !this.sounds[soundName]) return;
+    if (!this.initialized) this.init();
+    if (!this.sounds[soundName]) return;
     try {
       this.sounds[soundName].currentTime = 0;
       this.sounds[soundName].play().catch(e => console.warn(`Audio play failed for ${soundName}:`, e));
@@ -419,10 +420,11 @@ const EventTitleScreen = ({ onComplete }) => {
       audioManager.play('hooter');
     }
 
-    const enterTimer = setTimeout(() => setPhase('entering'), 100);
-    const holdTimer = setTimeout(() => setPhase('holding'), EVENT_TITLE_ENTER_DURATION);
-    const exitTimer = setTimeout(() => setPhase('exiting'), EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION);
-    const completeTimer = setTimeout(onComplete, EVENT_TITLE_COMPLETE_DURATION);
+    const delay = 1000;
+    const enterTimer = setTimeout(() => setPhase('entering'), delay);
+    const holdTimer = setTimeout(() => setPhase('holding'), delay + EVENT_TITLE_ENTER_DURATION);
+    const exitTimer = setTimeout(() => setPhase('exiting'), delay + EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION);
+    const completeTimer = setTimeout(onComplete, delay + EVENT_TITLE_COMPLETE_DURATION);
 
     return () => {
       clearTimeout(enterTimer);
