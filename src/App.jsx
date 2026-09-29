@@ -101,6 +101,16 @@ class AudioManager {
       console.error('Audio playback error:', e);
     }
   }
+
+  stopAll() {
+    if (!this.initialized) return;
+    Object.values(this.sounds).forEach(sound => {
+      if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
+      }
+    });
+  }
 }
 
 const audioManager = new AudioManager();
@@ -486,7 +496,12 @@ const App = () => {
         setRemaining(rem);
         if (rem.remainingMs <= 0) {
           setEventState((prev) => ({ ...prev, status: STATUS.COMPLETED }));
-          setPhase(PHASES.COMPLETED);
+          setPhase((prevPhase) => {
+            if (prevPhase === PHASES.COUNTDOWN_24H || prevPhase === 'TRANSITION_TO_24H') {
+              return PHASES.COMPLETED;
+            }
+            return prevPhase;
+          });
         }
       };
       updateRemaining();
@@ -580,12 +595,20 @@ const App = () => {
     };
     setEventState(newState);
     saveEventState(newState);
-    setPhase(PHASES.COUNTDOWN_24H);
+    
+    setPhase((prevPhase) => {
+      if (prevPhase === PHASES.COMPLETED || prevPhase === PHASES.COUNTDOWN_24H || prevPhase === 'TRANSITION_TO_24H') {
+        return PHASES.COUNTDOWN_24H;
+      }
+      return prevPhase;
+    });
+
     setShowSetCountdown(false);
     setShowAdminPanel(false);
   }, []);
 
   const handleResetCountdown = useCallback(() => {
+    audioManager.stopAll();
     clearEventState();
     setEventState(null);
     setRemaining(null);
