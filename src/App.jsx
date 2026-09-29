@@ -80,6 +80,14 @@ class AudioManager {
     this.sounds.hooter = new Audio('/audio/hooter-sound.mp3');
     this.sounds.hooter.volume = 1.0;
 
+    this.sounds.ambient = new Audio('/audio/background-sound.mp3');
+    this.sounds.ambient.volume = 0.12;
+    this.sounds.ambient.loop = true;
+
+    this.sounds.hooter.addEventListener('ended', () => {
+      this.play('ambient');
+    });
+
     this.initialized = true;
   }
 
@@ -393,6 +401,7 @@ const CountdownScreen = ({ onComplete }) => {
       return () => clearTimeout(timer);
     } else {
       setFade(true);
+      audioManager.play('hooter');
       const timer = setTimeout(onComplete, COUNTDOWN_FADE_DURATION);
       return () => clearTimeout(timer);
     }
@@ -412,15 +421,9 @@ const CountdownScreen = ({ onComplete }) => {
 // === EVENT TITLE SCREEN ===
 const EventTitleScreen = ({ onComplete }) => {
   const [phase, setPhase] = useState('initial');
-  const hooterPlayedRef = useRef(false);
 
   useEffect(() => {
-    if (!hooterPlayedRef.current) {
-      hooterPlayedRef.current = true;
-      audioManager.play('hooter');
-    }
-
-    const delay = 1000;
+    const delay = 100;
     const enterTimer = setTimeout(() => setPhase('entering'), delay);
     const holdTimer = setTimeout(() => setPhase('holding'), delay + EVENT_TITLE_ENTER_DURATION);
     const exitTimer = setTimeout(() => setPhase('exiting'), delay + EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION);
