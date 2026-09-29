@@ -62,6 +62,40 @@ function clearEventState() {
   }
 }
 
+// === AUDIO SYSTEM ===
+class AudioManager {
+  constructor() {
+    this.sounds = {};
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized || typeof window === 'undefined') return;
+    this.sounds.curtain = new Audio('/audio/curtain-whoosh.wav');
+    this.sounds.curtain.volume = 0.6;
+
+    this.sounds.countdown10s = new Audio('/audio/10-seconds-countdown-sound.mpeg');
+    this.sounds.countdown10s.volume = 0.6;
+
+    this.sounds.hooter = new Audio('/audio/event-hooter.mp3');
+    this.sounds.hooter.volume = 1.0;
+
+    this.initialized = true;
+  }
+
+  play(soundName) {
+    if (!this.initialized || !this.sounds[soundName]) return;
+    try {
+      this.sounds[soundName].currentTime = 0;
+      this.sounds[soundName].play().catch(e => console.warn(`Audio play failed for ${soundName}:`, e));
+    } catch (e) {
+      console.error('Audio playback error:', e);
+    }
+  }
+}
+
+const audioManager = new AudioManager();
+
 // === HELPER FUNCTIONS ===
 function calculateRemaining(endAt) {
   const remainingMs = Math.max(0, endAt - Date.now());
@@ -284,6 +318,10 @@ const CurtainScreen = ({ onOpen, children }) => {
 
   const handleClick = useCallback(() => {
     if (opening) return;
+
+    audioManager.init();
+    audioManager.play('curtain');
+
     setOpening(true);
     timeoutRef.current = setTimeout(() => {
       onOpen();
@@ -332,10 +370,25 @@ const CurtainScreen = ({ onOpen, children }) => {
 const CountdownScreen = ({ onComplete }) => {
   const [count, setCount] = useState(10);
   const [fade, setFade] = useState(false);
+  const audioStartedRef = useRef(false);
+  const startTimeRef = useRef(null);
 
   useEffect(() => {
+    if (!startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    }
+
+    if (count === 10 && !audioStartedRef.current) {
+      audioStartedRef.current = true;
+      audioManager.play('countdown10s');
+    }
+
     if (count > 0) {
-      const timer = setTimeout(() => setCount(count - 1), COUNTDOWN_INTERVAL);
+      const elapsed = Date.now() - startTimeRef.current;
+      const targetElapsed = (11 - count) * COUNTDOWN_INTERVAL;
+      const delay = Math.max(0, targetElapsed - elapsed);
+
+      const timer = setTimeout(() => setCount(count - 1), delay);
       return () => clearTimeout(timer);
     } else {
       setFade(true);
@@ -358,8 +411,14 @@ const CountdownScreen = ({ onComplete }) => {
 // === EVENT TITLE SCREEN ===
 const EventTitleScreen = ({ onComplete }) => {
   const [phase, setPhase] = useState('initial');
+  const hooterPlayedRef = useRef(false);
 
   useEffect(() => {
+    if (!hooterPlayedRef.current) {
+      hooterPlayedRef.current = true;
+      audioManager.play('hooter');
+    }
+
     const enterTimer = setTimeout(() => setPhase('entering'), 100);
     const holdTimer = setTimeout(() => setPhase('holding'), EVENT_TITLE_ENTER_DURATION);
     const exitTimer = setTimeout(() => setPhase('exiting'), EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION);
