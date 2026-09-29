@@ -73,6 +73,24 @@ class AudioManager {
     }
   }
 
+  resumeAmbient() {
+    if (!this.initialized) this.init();
+    if (!this.sounds.ambient) return Promise.resolve();
+    
+    // If already playing, do not restart
+    if (!this.sounds.ambient.paused) {
+      return Promise.resolve();
+    }
+    
+    try {
+      const promise = this.sounds.ambient.play();
+      return promise; // Return the promise so caller can catch autoplay restrictions
+    } catch (e) {
+      console.error('Audio playback error:', e);
+      return Promise.reject(e);
+    }
+  }
+
   stopAll() {
     if (!this.initialized) return;
     Object.values(this.sounds).forEach(sound => {
@@ -579,6 +597,31 @@ const App = () => {
     if (phase === 'TRANSITION_TO_24H') {
       const timer = setTimeout(() => setPhase(PHASES.COUNTDOWN_24H), TRANSITION_TO_24H_DURATION);
       return () => clearTimeout(timer);
+    }
+  }, [phase]);
+
+  // Handle ambient sound on page refresh during 24H phase
+  useEffect(() => {
+    if (phase === PHASES.COUNTDOWN_24H) {
+      const attemptPlay = () => {
+        const promise = audioManager.resumeAmbient();
+        if (promise !== undefined) {
+          promise.catch(() => {
+            // Autoplay blocked by browser, wait for user interaction
+            const handleInteraction = () => {
+              audioManager.resumeAmbient();
+              document.removeEventListener('click', handleInteraction);
+              document.removeEventListener('keydown', handleInteraction);
+              document.removeEventListener('touchstart', handleInteraction);
+            };
+            document.addEventListener('click', handleInteraction);
+            document.addEventListener('keydown', handleInteraction);
+            document.addEventListener('touchstart', handleInteraction);
+          });
+        }
+      };
+      
+      attemptPlay();
     }
   }, [phase]);
 
