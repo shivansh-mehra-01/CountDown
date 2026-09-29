@@ -16,6 +16,7 @@ const COUNTDOWN_FADE_DURATION = 1000;
 const TRANSITION_TO_24H_DURATION = 1000;
 
 const PHASES = {
+  INITIALIZING: 'INITIALIZING',
   CLOSED: 'CLOSED',
   OPENING: 'OPENING',
   WELCOME: 'WELCOME',
@@ -31,36 +32,6 @@ const STATUS = {
   COMPLETED: 'COMPLETED',
 };
 
-const STORAGE_KEY = 'hackathon_event_state';
-
-// === PERSISTENCE LAYER ===
-function loadEventState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch (e) {
-    console.error('Failed to load event state:', e);
-  }
-  return null;
-}
-
-function saveEventState(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.error('Failed to save event state:', e);
-  }
-}
-
-function clearEventState() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (e) {
-    console.error('Failed to clear event state:', e);
-  }
-}
 
 // === AUDIO SYSTEM ===
 class AudioManager {
@@ -331,44 +302,26 @@ const ResetConfirmation = ({ onCancel, onConfirm }) => {
 };
 
 // === CURTAIN SCREEN (with WELCOME behind) ===
-const CurtainScreen = ({ onOpen, children }) => {
+const CurtainScreen = ({ onOpen, cinematicStartedAt, children }) => {
   const [opening, setOpening] = useState(false);
-  const timeoutRef = useRef(null);
-
-  const handleClick = useCallback(() => {
-    if (opening) return;
-
-    audioManager.init();
-    audioManager.play('curtain');
-
-    setOpening(true);
-    timeoutRef.current = setTimeout(() => {
-      onOpen();
-    }, CURTAIN_OPEN_DURATION);
-  }, [opening, onOpen]);
 
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+    if (cinematicStartedAt) {
+      const elapsed = Date.now() - cinematicStartedAt;
+      if (elapsed < CURTAIN_OPEN_DURATION) {
+        setOpening(true);
+        if (elapsed < 100) {
+          audioManager.init();
+          audioManager.play('curtain');
+        }
+        const timer = setTimeout(onOpen, Math.max(0, CURTAIN_OPEN_DURATION - elapsed));
+        return () => clearTimeout(timer);
       }
-    };
-  }, []);
+    }
+  }, [cinematicStartedAt, onOpen]);
 
   return (
-    <div
-      className={`curtain-stage ${opening ? 'curtain-opening' : ''}`}
-      onClick={handleClick}
-      role="button"
-      aria-label="Open curtains to begin the show"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
-    >
+    <div className={`curtain-stage ${opening ? 'curtain-opening' : ''}`}>
       {children}
       <div className="curtain-left">
         <div className="curtain-fabric" />
@@ -378,28 +331,40 @@ const CurtainScreen = ({ onOpen, children }) => {
       </div>
       <div className="stage-reveal" />
       <div className="curtain-seam" />
-      <div className="curtain-click-hint" aria-hidden="true">
-        <span>Click to Begin</span>
-      </div>
     </div>
   );
 };
 
 // === COUNTDOWN SCREEN ===
-const CountdownScreen = ({ onComplete }) => {
-  const [count, setCount] = useState(10);
+const CountdownScreen = ({ onComplete, cinematicStartedAt }) => {
+  const [count, setCount] = useState(() => {
+    if (cinematicStartedAt) {
+      const elapsed = Date.now() - cinematicStartedAt - 5800; // Countdown starts at 5.8s
+      if (elapsed > 0) {
+        return Math.max(1, 10 - Math.floor(elapsed / 1000));
+      }
+    }
+    return 10;
+  });
   const [fade, setFade] = useState(false);
   const audioStartedRef = useRef(false);
   const startTimeRef = useRef(null);
 
   useEffect(() => {
     if (!startTimeRef.current) {
-      startTimeRef.current = Date.now();
+      if (cinematicStartedAt && count < 10) {
+        const expectedElapsed = (10 - count) * COUNTDOWN_INTERVAL;
+        startTimeRef.current = Date.now() - expectedElapsed;
+      } else {
+        startTimeRef.current = Date.now();
+      }
     }
 
     if (count === 10 && !audioStartedRef.current) {
       audioStartedRef.current = true;
       audioManager.play('countdown10s');
+    } else if (cinematicStartedAt && count < 10 && !audioStartedRef.current) {
+      audioStartedRef.current = true; // Skip audio start if late join
     }
 
     if (count > 0) {
@@ -415,7 +380,7 @@ const CountdownScreen = ({ onComplete }) => {
       const timer = setTimeout(onComplete, COUNTDOWN_FADE_DURATION);
       return () => clearTimeout(timer);
     }
-  }, [count, onComplete]);
+  }, [count, onComplete, cinematicStartedAt]);
 
   return (
     <div className={`countdown-screen ${fade ? 'fade-out' : ''}`}>
@@ -429,15 +394,33 @@ const CountdownScreen = ({ onComplete }) => {
 };
 
 // === EVENT TITLE SCREEN ===
-const EventTitleScreen = ({ onComplete }) => {
-  const [phase, setPhase] = useState('initial');
+const EventTitleScreen = ({ onComplete, cinematicStartedAt }) => {
+  const [phase, setPhase] = useState(() => {
+    if (cinematicStartedAt) {
+      const elapsed = Date.now() - cinematicStartedAt - 16800; // Starts at 16.8s
+      if (elapsed > EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION) return 'exiting';
+      if (elapsed > EVENT_TITLE_ENTER_DURATION) return 'holding';
+      if (elapsed > 0) return 'entering';
+    }
+    return 'initial';
+  });
 
   useEffect(() => {
+    let offset = 0;
+    if (cinematicStartedAt) {
+      offset = Math.max(0, Date.now() - cinematicStartedAt - 16800);
+    }
+
     const delay = 100;
-    const enterTimer = setTimeout(() => setPhase('entering'), delay);
-    const holdTimer = setTimeout(() => setPhase('holding'), delay + EVENT_TITLE_ENTER_DURATION);
-    const exitTimer = setTimeout(() => setPhase('exiting'), delay + EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION);
-    const completeTimer = setTimeout(onComplete, delay + EVENT_TITLE_COMPLETE_DURATION);
+    const enterDelay = Math.max(0, delay - offset);
+    const holdDelay = Math.max(0, delay + EVENT_TITLE_ENTER_DURATION - offset);
+    const exitDelay = Math.max(0, delay + EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION - offset);
+    const completeDelay = Math.max(0, delay + EVENT_TITLE_COMPLETE_DURATION - offset);
+
+    const enterTimer = setTimeout(() => setPhase('entering'), enterDelay);
+    const holdTimer = setTimeout(() => setPhase('holding'), holdDelay);
+    const exitTimer = setTimeout(() => setPhase('exiting'), exitDelay);
+    const completeTimer = setTimeout(onComplete, completeDelay);
 
     return () => {
       clearTimeout(enterTimer);
@@ -445,7 +428,7 @@ const EventTitleScreen = ({ onComplete }) => {
       clearTimeout(exitTimer);
       clearTimeout(completeTimer);
     };
-  }, [onComplete]);
+  }, [onComplete, cinematicStartedAt]);
 
   return (
     <div className={`event-title-screen ${phase}`}>
@@ -471,7 +454,7 @@ const App = () => {
     height: window.innerHeight,
   });
 
-  const [phase, setPhase] = useState(PHASES.CLOSED);
+  const [phase, setPhase] = useState(PHASES.INITIALIZING);
   const [eventState, setEventState] = useState(null);
   const [remaining, setRemaining] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -479,13 +462,58 @@ const App = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [defaultTargetTime, setDefaultTargetTime] = useState(null);
 
-  // Load persisted state on mount
+  // Load persisted state from API on mount
   useEffect(() => {
-    const saved = loadEventState();
-    if (saved && saved.phase === PHASES.COUNTDOWN_24H && saved.status === STATUS.RUNNING) {
-      setEventState(saved);
-      setPhase(PHASES.COUNTDOWN_24H);
-    }
+    const fetchState = async () => {
+      try {
+        const res = await fetch('/api/countdown');
+        if (res.ok) {
+          const saved = await res.json();
+          if (saved && saved.status) {
+            setEventState(saved);
+            
+            if (saved.status === STATUS.RUNNING || saved.status === STATUS.COMPLETED) {
+              if (saved.phase === PHASES.COUNTDOWN_24H || saved.phase === PHASES.COMPLETED) {
+                setPhase(saved.phase);
+                return;
+              }
+
+              if (saved.cinematicStartedAt) {
+                const elapsed = Date.now() - saved.cinematicStartedAt;
+                
+                // Timeline:
+                // OPENING: 0 - 2800
+                // WELCOME: 2800 - 5800
+                // COUNTDOWN_10: 5800 - 16800
+                // EVENT_TITLE: 16800 - 24100
+                // TRANSITION: 24100 - 25100
+                // COUNTDOWN_24H: > 25100
+                
+                if (elapsed < 2800) {
+                  setPhase(PHASES.OPENING);
+                } else if (elapsed < 5800) {
+                  setPhase(PHASES.WELCOME);
+                } else if (elapsed < 16800) {
+                  setPhase(PHASES.COUNTDOWN_10);
+                } else if (elapsed < 24100) {
+                  setPhase(PHASES.EVENT_TITLE);
+                } else {
+                  setPhase(PHASES.COUNTDOWN_24H);
+                }
+                return;
+              } else {
+                 setPhase(saved.phase || PHASES.CLOSED);
+                 return;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load event state from API:', e);
+      }
+      setPhase(PHASES.CLOSED);
+    };
+    fetchState();
   }, []);
 
   // Calculate remaining time
@@ -582,37 +610,51 @@ const App = () => {
     setPhase('TRANSITION_TO_24H');
   }, []);
 
-  const handleSetCountdown = useCallback((hours, minutes, seconds) => {
+  const handleSetCountdown = useCallback(async (hours, minutes, seconds) => {
     const durationMs = (hours * 60 * 60 + minutes * 60 + seconds) * 1000;
-    const startedAt = Date.now();
-    const endAt = startedAt + durationMs;
-    const newState = {
-      phase: PHASES.COUNTDOWN_24H,
-      status: STATUS.RUNNING,
-      startedAt,
-      endAt,
-      durationMs,
-    };
-    setEventState(newState);
-    saveEventState(newState);
     
-    setPhase((prevPhase) => {
-      if (prevPhase === PHASES.COMPLETED || prevPhase === PHASES.COUNTDOWN_24H || prevPhase === 'TRANSITION_TO_24H') {
-        return PHASES.COUNTDOWN_24H;
+    try {
+      const res = await fetch('/api/countdown/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ durationMs })
+      });
+      if (res.ok) {
+        const newState = await res.json();
+        setEventState(newState);
+        
+        setPhase((prevPhase) => {
+          if (prevPhase === PHASES.COMPLETED || prevPhase === PHASES.COUNTDOWN_24H || prevPhase === 'TRANSITION_TO_24H') {
+            return PHASES.COUNTDOWN_24H;
+          }
+          return prevPhase;
+        });
       }
-      return prevPhase;
-    });
+    } catch (err) {
+      console.error('Failed to set countdown via API', err);
+    }
 
     setShowSetCountdown(false);
     setShowAdminPanel(false);
   }, []);
 
-  const handleResetCountdown = useCallback(() => {
+  const handleResetCountdown = useCallback(async () => {
     audioManager.stopAll();
-    clearEventState();
-    setEventState(null);
-    setRemaining(null);
-    setPhase(PHASES.CLOSED);
+    
+    try {
+      const res = await fetch('/api/countdown/reset', { method: 'POST' });
+      if (res.ok) {
+        const newState = await res.json();
+        setEventState(newState);
+        audioManager.init();
+        audioManager.play('curtain');
+        setRemaining(null);
+        setPhase(PHASES.OPENING); 
+      }
+    } catch (err) {
+      console.error('Failed to reset countdown via API', err);
+    }
+
     setShowResetConfirm(false);
     setShowAdminPanel(false);
   }, []);
@@ -620,13 +662,13 @@ const App = () => {
   return (
     <>
       {showCurtains && (
-        <CurtainScreen onOpen={handleCurtainOpen}>
+        <CurtainScreen onOpen={handleCurtainOpen} cinematicStartedAt={eventState?.cinematicStartedAt}>
           <div className="welcome-text">WELCOME</div>
         </CurtainScreen>
       )}
 
-      {showEventTitle && <EventTitleScreen onComplete={handleEventTitleComplete} />}
-      {showCountdown && <CountdownScreen onComplete={handleCountdownComplete} />}
+      {showEventTitle && <EventTitleScreen onComplete={handleEventTitleComplete} cinematicStartedAt={eventState?.cinematicStartedAt} />}
+      {showCountdown && <CountdownScreen onComplete={handleCountdownComplete} cinematicStartedAt={eventState?.cinematicStartedAt} />}
 
       {showAdminPanel && (
         <AdminPanel
@@ -636,6 +678,20 @@ const App = () => {
           onResetCountdown={() => setShowResetConfirm(true)}
           onClose={() => setShowAdminPanel(false)}
         />
+      )}
+
+      {!showAdminPanel && phase !== PHASES.INITIALIZING && (
+        <button
+          onClick={() => setShowAdminPanel(true)}
+          className="fixed bottom-4 right-4 z-[99999] flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white/40 opacity-40 transition-all hover:bg-black/60 hover:text-white/80 hover:opacity-100"
+          aria-label="Organizer Control"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </button>
       )}
 
       {showSetCountdown && (
