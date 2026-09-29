@@ -7,14 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve -s dist"
   },
   "dependencies": {
     "@leenguyen/react-flip-clock-countdown": "^1.7.2",
     "@tailwindcss/vite": "^4.3.3",
     "d3": "^7.9.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "serve": "^14.2.6"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
