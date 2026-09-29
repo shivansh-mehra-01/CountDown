@@ -55,7 +55,7 @@ app.post('/api/countdown/set', async (req, res) => {
 
 app.post('/api/countdown/reset', async (req, res) => {
   const cinematicStartedAt = Date.now();
-  const cinematicDuration = 25100; // 25.1 seconds
+  const cinematicDuration = 25600; // 25.6 seconds
   
   const durationMs = 24 * 60 * 60 * 1000; // 24 Hours
   const startedAt = cinematicStartedAt + cinematicDuration;

@@ -398,9 +398,13 @@ const EventTitleScreen = ({ onComplete, cinematicStartedAt }) => {
   const [phase, setPhase] = useState(() => {
     if (cinematicStartedAt) {
       const elapsed = Date.now() - cinematicStartedAt - 16800; // Starts at 16.8s
-      if (elapsed > EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION) return 'exiting';
-      if (elapsed > EVENT_TITLE_ENTER_DURATION) return 'holding';
-      if (elapsed > 0) return 'entering';
+      
+      // We add 1500ms to synchronize exactly with the hooter's main impact/peak.
+      // The hooter starts 1000ms before this component mounts, so this adds up
+      // to a 2.5 second total delay from the hooter start, hitting the peak impact.
+      if (elapsed > EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION + 1500) return 'exiting';
+      if (elapsed > EVENT_TITLE_ENTER_DURATION + 1500) return 'holding';
+      if (elapsed > 1500) return 'entering';
     }
     return 'initial';
   });
@@ -411,7 +415,7 @@ const EventTitleScreen = ({ onComplete, cinematicStartedAt }) => {
       offset = Math.max(0, Date.now() - cinematicStartedAt - 16800);
     }
 
-    const delay = 100;
+    const delay = 1500; // Wait for hooter buildup (peak impact)
     const enterDelay = Math.max(0, delay - offset);
     const holdDelay = Math.max(0, delay + EVENT_TITLE_ENTER_DURATION - offset);
     const exitDelay = Math.max(0, delay + EVENT_TITLE_ENTER_DURATION + EVENT_TITLE_HOLD_DURATION - offset);
@@ -485,9 +489,9 @@ const App = () => {
                 // OPENING: 0 - 2800
                 // WELCOME: 2800 - 5800
                 // COUNTDOWN_10: 5800 - 16800
-                // EVENT_TITLE: 16800 - 24100
-                // TRANSITION: 24100 - 25100
-                // COUNTDOWN_24H: > 25100
+                // EVENT_TITLE: 16800 - 25600
+                // TRANSITION: 25600 - 26600
+                // COUNTDOWN_24H: > 26600
                 
                 if (elapsed < 2800) {
                   setPhase(PHASES.OPENING);
@@ -495,7 +499,7 @@ const App = () => {
                   setPhase(PHASES.WELCOME);
                 } else if (elapsed < 16800) {
                   setPhase(PHASES.COUNTDOWN_10);
-                } else if (elapsed < 24100) {
+                } else if (elapsed < 25600) {
                   setPhase(PHASES.EVENT_TITLE);
                 } else {
                   setPhase(PHASES.COUNTDOWN_24H);
@@ -729,8 +733,9 @@ const App = () => {
             justifyContent: 'center',
           }}
         >
-          {(eventState?.endAt || defaultTargetTime) && (
+          {show24H && (eventState?.endAt || defaultTargetTime) && (
             <FlipClockCountdown
+              key={eventState?.endAt || defaultTargetTime}
               to={eventState?.endAt || defaultTargetTime}
               renderMap={[false, true, true, true]} // [days, hours, minutes, seconds]
               showLabels={false}
