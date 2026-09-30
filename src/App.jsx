@@ -335,7 +335,7 @@ const ResetConfirmation = ({ onCancel, onConfirm }) => {
 };
 
 // === CURTAIN SCREEN (with WELCOME behind) ===
-const CurtainScreen = ({ onOpen, cinematicStartedAt, children }) => {
+const CurtainScreen = ({ onOpen, cinematicStartedAt, onDoubleClick, children }) => {
   const [opening, setOpening] = useState(false);
 
   useEffect(() => {
@@ -353,17 +353,8 @@ const CurtainScreen = ({ onOpen, cinematicStartedAt, children }) => {
     }
   }, [cinematicStartedAt, onOpen]);
 
-  const handleDoubleClick = () => {
-    if (!opening) {
-      setOpening(true);
-      audioManager.init();
-      audioManager.play('curtain');
-      setTimeout(onOpen, CURTAIN_OPEN_DURATION);
-    }
-  };
-
   return (
-    <div className={`curtain-stage ${opening ? 'curtain-opening' : ''}`} onDoubleClick={handleDoubleClick}>
+    <div className={`curtain-stage ${opening ? 'curtain-opening' : ''}`} onDoubleClick={onDoubleClick}>
       {children}
       <div className="curtain-left">
         <div className="curtain-fabric" />
@@ -711,13 +702,15 @@ const App = () => {
     audioManager.stopAll();
     
     try {
-      const res = await fetch('/api/countdown/reset', { method: 'POST' });
+      const res = await fetch('/api/countdown/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: false })
+      });
       if (res.ok) {
         const newState = await res.json();
         setEventState(newState);
-        audioManager.init();
-        audioManager.play('curtain');
-        setPhase(PHASES.OPENING); 
+        setPhase(PHASES.CLOSED); 
       }
     } catch (err) {
       console.error('Failed to reset countdown via API', err);
@@ -727,10 +720,28 @@ const App = () => {
     setShowAdminPanel(false);
   }, []);
 
+  const handleCurtainDoubleClick = useCallback(async () => {
+    if (phase !== PHASES.CLOSED) return;
+
+    try {
+      const res = await fetch('/api/countdown/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: true })
+      });
+      if (res.ok) {
+        const newState = await res.json();
+        setEventState(newState);
+      }
+    } catch (err) {
+      console.error('Failed to start cinematic via API', err);
+    }
+  }, [phase]);
+
   return (
     <>
       {showCurtains && (
-        <CurtainScreen onOpen={handleCurtainOpen} cinematicStartedAt={eventState?.cinematicStartedAt}>
+        <CurtainScreen onOpen={handleCurtainOpen} cinematicStartedAt={eventState?.cinematicStartedAt} onDoubleClick={handleCurtainDoubleClick}>
           <div className="welcome-text">WELCOME</div>
         </CurtainScreen>
       )}

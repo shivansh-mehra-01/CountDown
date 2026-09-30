@@ -54,24 +54,40 @@ app.post('/api/countdown/set', async (req, res) => {
 });
 
 app.post('/api/countdown/reset', async (req, res) => {
-  const cinematicStartedAt = Date.now();
-  const cinematicDuration = 25600; // 25.6 seconds
+  const { start } = req.body || {};
   
-  const durationMs = 24 * 60 * 60 * 1000; // 24 Hours
-  const startedAt = cinematicStartedAt + cinematicDuration;
-  const endAt = startedAt + durationMs;
+  if (start) {
+    const cinematicStartedAt = Date.now();
+    const cinematicDuration = 25600; // 25.6 seconds
+    
+    const durationMs = 24 * 60 * 60 * 1000; // 24 Hours
+    const startedAt = cinematicStartedAt + cinematicDuration;
+    const endAt = startedAt + durationMs;
 
-  const newState = {
-    phase: 'CLOSED', // This signifies the cinematic intro needs to play globally
-    status: 'RUNNING',
-    cinematicStartedAt,
-    startedAt,
-    endAt,
-    durationMs,
-  };
-  
-  await setCountdownState(newState);
-  res.json({ success: true, ...newState, serverNow: Date.now() });
+    const newState = {
+      phase: 'CLOSED', // This signifies the cinematic intro needs to play globally
+      status: 'RUNNING',
+      cinematicStartedAt,
+      startedAt,
+      endAt,
+      durationMs,
+    };
+    
+    await setCountdownState(newState);
+    return res.json({ success: true, ...newState, serverNow: Date.now() });
+  } else {
+    const newState = {
+      phase: 'CLOSED',
+      status: 'IDLE',
+      cinematicStartedAt: null,
+      startedAt: null,
+      endAt: null,
+      durationMs: 0,
+    };
+    
+    await setCountdownState(newState);
+    return res.json({ success: true, ...newState, serverNow: Date.now() });
+  }
 });
 
 // --- SERVE STATIC FRONTEND ---
