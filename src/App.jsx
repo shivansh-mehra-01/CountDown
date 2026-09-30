@@ -337,19 +337,24 @@ const ResetConfirmation = ({ onCancel, onConfirm }) => {
 // === CURTAIN SCREEN (with WELCOME behind) ===
 const CurtainScreen = ({ onOpen, cinematicStartedAt, onDoubleClick, children }) => {
   const [opening, setOpening] = useState(false);
+  const audioPlayed = useRef(false);
 
   useEffect(() => {
     if (cinematicStartedAt) {
       const elapsed = Date.now() - cinematicStartedAt;
-      if (elapsed > 0 && elapsed < CURTAIN_OPEN_DURATION) {
+      if (elapsed < CURTAIN_OPEN_DURATION) {
         setOpening(true);
-        if (elapsed < 100) {
+        if (elapsed < 500 && !audioPlayed.current) {
           audioManager.init();
           audioManager.play('curtain');
+          audioPlayed.current = true;
         }
         const timer = setTimeout(onOpen, Math.max(0, CURTAIN_OPEN_DURATION - elapsed));
         return () => clearTimeout(timer);
       }
+    } else {
+      audioPlayed.current = false;
+      setOpening(false);
     }
   }, [cinematicStartedAt, onOpen]);
 
@@ -722,6 +727,12 @@ const App = () => {
 
   const handleCurtainDoubleClick = useCallback(async () => {
     if (phase !== PHASES.CLOSED) return;
+
+    // Eagerly update local state for instant UI feedback
+    setEventState(prev => ({
+      ...prev,
+      cinematicStartedAt: Date.now()
+    }));
 
     try {
       const res = await fetch('/api/countdown/reset', {
