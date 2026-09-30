@@ -124,7 +124,22 @@ function formatDateTime(timestamp) {
 }
 
 // === ADMIN PANEL ===
-const AdminPanel = ({ eventState, remaining, onSetCountdown, onResetCountdown, onClose }) => {
+const AdminPanel = ({ eventState, onSetCountdown, onResetCountdown, onClose }) => {
+  const [remaining, setRemaining] = useState(null);
+
+  useEffect(() => {
+    if (eventState && eventState.status === 'RUNNING' && eventState.endAt) {
+      const updateRemaining = () => {
+        setRemaining(calculateRemaining(eventState.endAt));
+      };
+      updateRemaining();
+      const interval = setInterval(updateRemaining, 250);
+      return () => clearInterval(interval);
+    } else {
+      setRemaining(null);
+    }
+  }, [eventState]);
+
   return (
     <div className="fixed bottom-4 right-4 z-[100000] w-72 rounded-xl border border-white/10 bg-black/80 p-4 shadow-2xl backdrop-blur-xl">
       <div className="mb-3 flex items-center justify-between">
@@ -326,7 +341,7 @@ const CurtainScreen = ({ onOpen, cinematicStartedAt, children }) => {
   useEffect(() => {
     if (cinematicStartedAt) {
       const elapsed = Date.now() - cinematicStartedAt;
-      if (elapsed < CURTAIN_OPEN_DURATION) {
+      if (elapsed > 0 && elapsed < CURTAIN_OPEN_DURATION) {
         setOpening(true);
         if (elapsed < 100) {
           audioManager.init();
@@ -338,8 +353,17 @@ const CurtainScreen = ({ onOpen, cinematicStartedAt, children }) => {
     }
   }, [cinematicStartedAt, onOpen]);
 
+  const handleDoubleClick = () => {
+    if (!opening) {
+      setOpening(true);
+      audioManager.init();
+      audioManager.play('curtain');
+      setTimeout(onOpen, CURTAIN_OPEN_DURATION);
+    }
+  };
+
   return (
-    <div className={`curtain-stage ${opening ? 'curtain-opening' : ''}`}>
+    <div className={`curtain-stage ${opening ? 'curtain-opening' : ''}`} onDoubleClick={handleDoubleClick}>
       {children}
       <div className="curtain-left">
         <div className="curtain-fabric" />
@@ -478,7 +502,6 @@ const App = () => {
 
   const [phase, setPhase] = useState(PHASES.INITIALIZING);
   const [eventState, setEventState] = useState(null);
-  const [remaining, setRemaining] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showSetCountdown, setShowSetCountdown] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -538,13 +561,11 @@ const App = () => {
     fetchState();
   }, []);
 
-  // Calculate remaining time
+  // Calculate remaining time for global completion
   useEffect(() => {
     if (eventState && eventState.status === STATUS.RUNNING && eventState.endAt) {
-      const updateRemaining = () => {
-        const rem = calculateRemaining(eventState.endAt);
-        setRemaining(rem);
-        if (rem.remainingMs <= 0) {
+      const checkCompletion = () => {
+        if (Date.now() >= eventState.endAt) {
           setEventState((prev) => ({ ...prev, status: STATUS.COMPLETED }));
           setPhase((prevPhase) => {
             if (prevPhase === PHASES.COUNTDOWN_24H || prevPhase === 'TRANSITION_TO_24H') {
@@ -554,8 +575,9 @@ const App = () => {
           });
         }
       };
-      updateRemaining();
-      const interval = setInterval(updateRemaining, 250);
+      
+      checkCompletion();
+      const interval = setInterval(checkCompletion, 1000);
       return () => clearInterval(interval);
     }
   }, [eventState]);
@@ -695,7 +717,6 @@ const App = () => {
         setEventState(newState);
         audioManager.init();
         audioManager.play('curtain');
-        setRemaining(null);
         setPhase(PHASES.OPENING); 
       }
     } catch (err) {
@@ -720,7 +741,6 @@ const App = () => {
       {showAdminPanel && (
         <AdminPanel
           eventState={eventState}
-          remaining={remaining}
           onSetCountdown={() => setShowSetCountdown(true)}
           onResetCountdown={() => setShowResetConfirm(true)}
           onClose={() => setShowAdminPanel(false)}
